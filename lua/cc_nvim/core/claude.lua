@@ -88,10 +88,10 @@ function M.process_output(data)
 end
 
 function M.contains_code_changes(data)
-  return data:match("```") or 
+  return (data:match("```") or 
          data:match("File:") or 
          data:match("Line %d+") or
-         data:match("Lines %d+%-")
+         data:match("Lines %d+%-")) ~= nil
 end
 
 function M.extract_and_store_changes(data)
@@ -105,7 +105,8 @@ end
 
 function M.send_message(message)
   if not M.current_session then
-    if not M.start_session() then
+    M.current_session = M.start_session()
+    if not M.current_session then
       return
     end
   end

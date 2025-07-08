@@ -60,9 +60,21 @@ end
 
 function M.split_lines(str)
   local lines = {}
-  for line in str:gmatch("([^\n]*)\n?") do
-    table.insert(lines, line)
+  if str == "" then
+    return {""}
   end
+  
+  local start = 1
+  while true do
+    local pos = str:find("\n", start)
+    if not pos then
+      table.insert(lines, str:sub(start))
+      break
+    end
+    table.insert(lines, str:sub(start, pos - 1))
+    start = pos + 1
+  end
+  
   return lines
 end
 
