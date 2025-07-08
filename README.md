@@ -1,6 +1,7 @@
 # cc.nvim
 
 A Neovim plugin for integrating with Claude Code CLI, providing AI-powered coding assistance similar to Cursor and other AI coding tools.
+**This plugin develop with Claude Code.**
 
 ## Features
 
