@@ -143,7 +143,7 @@ function M.send_input()
     return
   end
 
-  local claude = require("cc_nvim.claude")
+  local claude = require("cc_nvim.core.claude")
   claude.send_message(line)
 
   vim.api.nvim_set_current_line("")

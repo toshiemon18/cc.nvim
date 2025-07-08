@@ -1,8 +1,8 @@
 local M = {}
 
 local config = require("cc_nvim.config")
-local panel = require("cc_nvim.panel")
-local claude = require("cc_nvim.claude")
+local panel = require("cc_nvim.ui.panel")
+local claude = require("cc_nvim.core.claude")
 local utils = require("cc_nvim.utils")
 
 M.config = config

@@ -1,7 +1,7 @@
 local M = {}
 
-local diff_parser = require("cc_nvim.diff_parser")
-local diff_ui = require("cc_nvim.diff_ui")
+local diff_parser = require("cc_nvim.diff.parser")
+local diff_ui = require("cc_nvim.ui.diff")
 local config = require("cc_nvim.config")
 local git = require("cc_nvim.git")
 

@@ -1,7 +1,7 @@
 local M = {}
 
 local config = require("cc_nvim.config")
-local diff_parser = require("cc_nvim.diff_parser")
+local diff_parser = require("cc_nvim.diff.parser")
 
 M.buf = nil
 M.win = nil

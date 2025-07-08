@@ -1,6 +1,6 @@
 local M = {}
 
-local diff_parser = require("cc_nvim.diff_parser")
+local diff_parser = require("cc_nvim.diff.parser")
 local utils = require("cc_nvim.utils")
 
 function M.get_git_diff(commit_or_branch)

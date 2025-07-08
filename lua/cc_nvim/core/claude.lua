@@ -1,8 +1,8 @@
 local M = {}
 
 local config = require("cc_nvim.config")
-local panel = require("cc_nvim.panel")
-local diff_parser = require("cc_nvim.diff_parser")
+local panel = require("cc_nvim.ui.panel")
+local diff_parser = require("cc_nvim.diff.parser")
 local uv = vim.loop
 
 M.current_session = nil
