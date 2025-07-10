@@ -4,7 +4,10 @@
       "Bash(mkdir:*)",
       "Bash(mv:*)",
       "Bash(git:push)",
-      "Bash(nvim:*)"
+      "Bash(nvim:*)",
+      "Bash(busted:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

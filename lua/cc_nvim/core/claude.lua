@@ -11,6 +11,31 @@ M.is_open = false
 -- Lock to prevent concurrent operations
 local operation_lock = false
 
+-- Force single instance - kill everything before creating new
+function M.force_single_instance()
+  -- Find ALL buffers that might be Claude Code terminals
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) then
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name:match("Claude Code") then
+        -- This is a Claude Code terminal buffer, close all windows showing it
+        local wins = vim.fn.win_findbuf(buf)
+        for _, win in ipairs(wins) do
+          if vim.api.nvim_win_is_valid(win) and vim.fn.winnr('$') > 1 then
+            vim.api.nvim_win_close(win, true)
+          end
+        end
+      end
+    end
+  end
+  
+  -- Reset our state completely
+  M.terminal_buf = nil
+  M.terminal_win = nil
+  M.job_id = nil
+  M.is_open = false
+end
+
 function M.get_terminal_state()
   local state = {
     has_valid_buffer = false,
@@ -76,11 +101,8 @@ function M.find_existing_terminal()
 end
 
 function M.cleanup_terminal()
-  print("DEBUG: cleanup_terminal() called")
-  
   -- Stop the job if it exists
   if M.job_id then
-    print("DEBUG: Stopping job", M.job_id)
     vim.fn.jobstop(M.job_id)
     M.job_id = nil
   end
@@ -88,21 +110,15 @@ function M.cleanup_terminal()
   -- Close all windows showing the terminal buffer, but don't close the last window
   if M.terminal_buf and vim.api.nvim_buf_is_valid(M.terminal_buf) then
     local wins = vim.fn.win_findbuf(M.terminal_buf)
-    print("DEBUG: Found windows for buffer", M.terminal_buf, ":", vim.inspect(wins))
-    
-    -- Only close windows if there are other windows available
     local total_windows = vim.fn.winnr('$')
-    print("DEBUG: Total windows:", total_windows)
     
     for _, win_id in ipairs(wins) do
       if vim.api.nvim_win_is_valid(win_id) then
         -- Only close if it's not the last window
         if total_windows > 1 then
-          print("DEBUG: Closing window", win_id)
           vim.api.nvim_win_close(win_id, true)
           total_windows = total_windows - 1
         else
-          print("DEBUG: Skipping close of last window", win_id)
           -- Instead of closing, just switch to a different buffer
           local alt_buf = vim.fn.bufnr('#')
           if alt_buf ~= -1 and alt_buf ~= M.terminal_buf then
@@ -118,12 +134,9 @@ function M.cleanup_terminal()
   end
   
   -- Reset all state
-  print("DEBUG: Resetting state")
   M.terminal_buf = nil
   M.terminal_win = nil
   M.is_open = false
-  
-  print("DEBUG: cleanup_terminal() completed")
 end
 
 function M.auto_repair_state()
@@ -155,30 +168,10 @@ function M.auto_repair_state()
 end
 
 function M.open_terminal()
-  print("DEBUG: open_terminal() called")
+  -- Always force single instance to prevent duplicates
+  M.force_single_instance()
   
-  -- Check if we already have a valid terminal
-  if M.terminal_buf and vim.api.nvim_buf_is_valid(M.terminal_buf) and 
-     M.job_id and vim.fn.jobwait({M.job_id}, 0)[1] == -1 then
-    -- Terminal exists and job is running, just show it
-    local wins = vim.fn.win_findbuf(M.terminal_buf)
-    if #wins > 0 then
-      -- Already visible, just focus
-      print("DEBUG: Terminal already visible, focusing window", wins[1])
-      vim.api.nvim_set_current_win(wins[1])
-      M.terminal_win = wins[1]
-      return
-    else
-      -- Not visible, create window for existing buffer
-      print("DEBUG: Creating window for existing buffer", M.terminal_buf)
-      M.create_window_for_existing_buffer()
-      return
-    end
-  end
-  
-  -- No valid terminal exists, create new one
-  print("DEBUG: No valid terminal, creating new one")
-  M.cleanup_terminal()
+  -- Always create a completely new terminal
   M.create_new_terminal()
 end
 
@@ -273,17 +266,8 @@ function M.create_window_for_buffer()
 end
 
 function M.create_new_terminal()
-  print("DEBUG: create_new_terminal() called")
-  
   local claude_cmd = config.get("claude_executable")
   local panel_config = config.get("panel")
-  
-  print("DEBUG: Before cleanup - terminal_buf:", M.terminal_buf, "terminal_win:", M.terminal_win, "job_id:", M.job_id)
-  
-  -- Clean up any existing terminal first
-  M.cleanup_terminal()
-  
-  print("DEBUG: After cleanup - terminal_buf:", M.terminal_buf, "terminal_win:", M.terminal_win, "job_id:", M.job_id)
   
   -- Create split window
   if panel_config.position == "right" then
@@ -297,7 +281,6 @@ function M.create_new_terminal()
   end
 
   M.terminal_win = vim.api.nvim_get_current_win()
-  print("DEBUG: Created new window:", M.terminal_win)
   
   -- Set window size
   M.set_window_size()
@@ -305,8 +288,7 @@ function M.create_new_terminal()
   -- Start Claude Code in terminal
   M.job_id = vim.fn.termopen(claude_cmd, {
     on_exit = function(job_id, code, event)
-      print("DEBUG: Terminal exited with code:", code)
-      M.cleanup_terminal()
+      M.force_single_instance()
       if code ~= 0 then
         vim.notify("Claude Code exited with code: " .. code, vim.log.levels.WARN)
       end
@@ -320,8 +302,6 @@ function M.create_new_terminal()
 
   M.terminal_buf = vim.api.nvim_get_current_buf()
   M.is_open = true
-  
-  print("DEBUG: After terminal creation - terminal_buf:", M.terminal_buf, "terminal_win:", M.terminal_win, "job_id:", M.job_id)
   
   -- Set buffer name
   vim.api.nvim_buf_set_name(M.terminal_buf, "Claude Code")
@@ -357,40 +337,38 @@ function M.setup_keymaps()
 end
 
 function M.close()
-  print("DEBUG: close() called")
-  
-  -- Just call cleanup_terminal which handles everything
-  M.cleanup_terminal()
-  
-  print("DEBUG: close() completed")
+  -- Force single instance cleanup
+  M.force_single_instance()
 end
 
 function M.toggle()
   -- Prevent concurrent operations
   if operation_lock then
-    print("DEBUG: Operation already in progress, skipping")
     return
   end
   
   operation_lock = true
   
-  print("DEBUG: toggle() called")
-  print("DEBUG: Current state - buf:", M.terminal_buf, "win:", M.terminal_win, "job:", M.job_id, "open:", M.is_open)
+  -- Simple logic: check if ANY Claude Code terminal is visible
+  local claude_visible = false
   
-  -- Simple logic: if we have a valid terminal that's visible, close it. Otherwise, open it.
-  local terminal_visible = false
-  
-  if M.terminal_buf and vim.api.nvim_buf_is_valid(M.terminal_buf) then
-    local wins = vim.fn.win_findbuf(M.terminal_buf)
-    print("DEBUG: Buffer", M.terminal_buf, "found in windows:", vim.inspect(wins))
-    terminal_visible = #wins > 0
+  -- Check all windows for Claude Code terminals
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_is_valid(win) then
+      local buf = vim.api.nvim_win_get_buf(win)
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name:match("Claude Code") then
+        claude_visible = true
+        break
+      end
+    end
   end
   
-  if terminal_visible then
-    print("DEBUG: Terminal is visible, closing it")
-    M.close()
+  if claude_visible then
+    -- Close all Claude Code terminals
+    M.force_single_instance()
   else
-    print("DEBUG: Terminal not visible, opening it")
+    -- Open new terminal
     M.open_terminal()
   end
   
