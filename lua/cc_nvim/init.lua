@@ -28,4 +28,19 @@ function M.is_open()
   return terminal.is_open()
 end
 
+-- 現在のバッファをclaude codeに送信
+function M.send_buffer()
+  terminal.send_current_buffer()
+end
+
+-- 選択範囲をclaude codeに送信
+function M.send_selection()
+  terminal.send_selection()
+end
+
+-- 現在の行をclaude codeに送信
+function M.send_line()
+  terminal.send_current_line()
+end
+
 return M

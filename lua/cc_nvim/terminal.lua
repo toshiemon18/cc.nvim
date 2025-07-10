@@ -120,4 +120,88 @@ function M.set_window_size()
   end
 end
 
+-- 現在のバッファ内容をclaude codeに送信
+function M.send_current_buffer()
+  if not M.is_open() then
+    vim.notify("Claude Code terminal is not open", vim.log.levels.WARN)
+    return
+  end
+
+  -- 現在のバッファの内容を取得
+  local current_buf = vim.api.nvim_get_current_buf()
+  local lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+  local content = table.concat(lines, "\n")
+  
+  -- ファイル名を取得
+  local filename = vim.api.nvim_buf_get_name(current_buf)
+  if filename == "" then
+    filename = "[No Name]"
+  else
+    filename = vim.fn.fnamemodify(filename, ":t") -- ベース名のみ
+  end
+
+  -- メッセージを構築
+  local message = string.format("Here's the content of %s:\n\n```\n%s\n```\n", filename, content)
+  
+  -- ターミナルに送信
+  vim.fn.chansend(M.job_id, message)
+end
+
+-- 選択範囲をclaude codeに送信
+function M.send_selection()
+  if not M.is_open() then
+    vim.notify("Claude Code terminal is not open", vim.log.levels.WARN)
+    return
+  end
+
+  -- ビジュアルモードの選択範囲を取得
+  local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(0, "<"))
+  local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(0, ">"))
+  
+  if start_row == 0 or end_row == 0 then
+    vim.notify("No selection found", vim.log.levels.WARN)
+    return
+  end
+
+  -- 選択された行を取得（0-indexedなので調整）
+  local lines = vim.api.nvim_buf_get_lines(0, start_row - 1, end_row, false)
+  
+  -- 最初と最後の行の部分選択を処理
+  if #lines > 0 then
+    if #lines == 1 then
+      -- 単一行の場合（1-indexedに調整）
+      lines[1] = string.sub(lines[1], start_col + 1, end_col + 1)
+    else
+      -- 複数行の場合
+      lines[1] = string.sub(lines[1], start_col + 1)
+      lines[#lines] = string.sub(lines[#lines], 1, end_col + 1)
+    end
+  end
+
+  local selection = table.concat(lines, "\n")
+  
+  -- メッセージを構築
+  local message = string.format("Here's the selected code:\n\n```\n%s\n```\n", selection)
+  
+  -- ターミナルに送信
+  vim.fn.chansend(M.job_id, message)
+end
+
+-- 現在の行をclaude codeに送信
+function M.send_current_line()
+  if not M.is_open() then
+    vim.notify("Claude Code terminal is not open", vim.log.levels.WARN)
+    return
+  end
+
+  local current_line = vim.api.nvim_get_current_line()
+  local line_num = vim.fn.line(".")
+  
+  -- メッセージを構築
+  local message = string.format("Here's line %d:\n\n```\n%s\n```\n", line_num, current_line)
+  
+  -- ターミナルに送信
+  vim.fn.chansend(M.job_id, message)
+end
+
 return M
