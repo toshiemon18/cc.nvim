@@ -2,40 +2,16 @@ local M = {}
 
 M.defaults = {
   claude_executable = "claude",
-  auto_start = false,
   panel = {
-    position = "right",
-    size = 40,
-    auto_resize = true,
-    border = "rounded",
+    position = "right", -- "right", "left", "bottom", "top"
+    size = 40, -- percentage of screen
   },
   keymaps = {
-    toggle_panel = "<leader>cc",
+    toggle = "<leader>cc",
+    open = "<leader>co",
     send_file = "<leader>cf",
     send_selection = "<leader>cs",
-    apply_changes = "<leader>ca",
-    review_changes = "<leader>cd",
-    git_diff = "<leader>cg",
-    git_diff_staged = "<leader>cG",
   },
-  highlights = {
-    user_message = "Comment",
-    claude_message = "String",
-    system_message = "WarningMsg",
-    error_message = "ErrorMsg",
-  },
-  diff = {
-    mode = "side_by_side",
-    context_lines = 3,
-    show_line_numbers = true,
-    wrap_lines = false,
-    syntax_highlighting = true,
-    split_ratio = 0.5,
-    min_height = 10,
-    border = "rounded",
-  },
-  timeout = 30000,
-  max_history = 100,
 }
 
 M.options = {}
@@ -49,4 +25,3 @@ function M.get(key)
 end
 
 return M
-

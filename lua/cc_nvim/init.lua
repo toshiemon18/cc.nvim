@@ -1,25 +1,27 @@
 local M = {}
 
 local config = require("cc_nvim.config")
-local panel = require("cc_nvim.ui.panel")
 local claude = require("cc_nvim.core.claude")
 local utils = require("cc_nvim.utils")
 
 M.config = config
-M.panel = panel
 M.claude = claude
 M.utils = utils
 
 function M.setup(opts)
   config.setup(opts)
-  panel.setup()
 end
 
-function M.chat(message)
-  panel.open()
-  if message and message ~= "" then
-    claude.send_message(message)
-  end
+function M.open()
+  claude.open_terminal()
+end
+
+function M.close()
+  claude.close()
+end
+
+function M.toggle()
+  claude.toggle()
 end
 
 function M.send_file(file_path)
@@ -31,7 +33,6 @@ function M.send_file(file_path)
 
   local content = utils.read_file(path)
   if content then
-    panel.open()
     claude.send_file(path, content)
   else
     vim.notify("Failed to read file: " .. path, vim.log.levels.ERROR)
@@ -54,33 +55,15 @@ function M.send_selection()
   end
 
   local selection = table.concat(lines, "\n")
-  panel.open()
   claude.send_selection(selection)
 end
 
-function M.apply_changes()
-  claude.apply_changes()
+function M.send_message(message)
+  claude.send_message(message)
 end
 
-function M.review_changes()
-  local changes = claude.get_pending_changes()
-  if #changes == 0 then
-    vim.notify("No changes to review", vim.log.levels.WARN)
-    return
-  end
-  
-  local diff = require("cc_nvim.diff")
-  diff.start_diff_mode(changes)
-end
-
-function M.git_diff(commit_or_branch)
-  local diff = require("cc_nvim.diff")
-  diff.start_git_diff_mode(commit_or_branch)
-end
-
-function M.toggle_panel()
-  panel.toggle()
+function M.is_open()
+  return claude.is_terminal_open()
 end
 
 return M
-
